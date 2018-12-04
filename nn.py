@@ -18,9 +18,9 @@ https://power.larc.nasa.gov/data-access-viewer/
 # constants
 NUM_NEURON = 2
 NUM_INPUTS = 2
-NUM_EPOCHS = 1000
+NUM_EPOCHS = 10
 NUM_MCHEPS = 0.01
-BIAS_GAMMA = 0.5
+LEARNING_RATE = 0.01
 
 # get dataset
 with open('weather_data.csv') as csv_file:
@@ -56,8 +56,7 @@ def dsigmoid(x):
     return x * (1 - x)
 
 def drelu(x):
-    if x <= 0: return 0
-    else: return 1
+    return np.where(x <= 0, 0, 1)
 
 # Forward Pass
 def forward_pass(data, weights, bias, layer, is_output):
@@ -73,22 +72,22 @@ def backward_prop(data, hidden_weights, output_weights, bias, output_bias, hidde
     error_output_delta = error_output * dsigmoid(result)
 
     # the effect of hidden layer 2 to error
-    error_layer2 = np.dot(error_output_delta, np.transpose(hidden_weights)[1])
-    error_layer2_delta = error_layer2 * drelu(hidden_layer_outputs[1])
+    error_layer2 = np.matmul(error_output_delta.reshape(-1,1), np.transpose(hidden_weights)[1].reshape(1,-1))
+    error_layer2_delta = np.transpose(error_layer2) * drelu(hidden_layer_outputs[1])
 
     # the effect of hidden layer 1 to error
-    error_layer1 = np.dot(error_layer2_delta, np.transpose(hidden_weights)[0])
-    error_layer1_delta = error_layer1 * drelu(hidden_layer_outputs[0])
+    error_layer1 = np.matmul(np.transpose(error_layer2_delta), np.transpose(hidden_weights)[0])
+    error_layer1_delta = np.transpose(error_layer1) * drelu(hidden_layer_outputs[0])
 
     # adjust the weights
-    hidden_weights[0] += np.matmul(data, error_layer1_delta)
-    hidden_weights[1] += np.matmul(np.transpose(hidden_layer_outputs[0]), error_layer2_delta)
-    output_weights += np.matmul(np.transpose(hidden_layer_outputs[1]), error_output_delta)
+    hidden_weights[0] += LEARNING_RATE * np.matmul(data, error_layer1_delta)
+    hidden_weights[1] += LEARNING_RATE * np.matmul(np.transpose(hidden_layer_outputs[0]), np.transpose(error_layer2_delta))
+    output_weights += LEARNING_RATE * np.matmul(np.transpose(hidden_layer_outputs[1]), np.transpose(error_output_delta))
 
     # adjust bias
-    output_bias -= BIAS_GAMMA * error_output_delta
-    bias[0] -= BIAS_GAMMA * error_layer1_delta
-    bias[1] -= BIAS_GAMMA * error_layer2_delta
+    bias[0] -= LEARNING_RATE * np.matmul(data, error_layer1_delta)
+    bias[1] -= LEARNING_RATE * np.matmul(np.transpose(hidden_layer_outputs[0]), np.transpose(error_layer2_delta))
+    output_bias -= LEARNING_RATE * np.matmul(np.transpose(hidden_layer_outputs[1]), np.transpose(error_output_delta))
 
     return (hidden_weights, output_weights, bias, output_bias)
 
@@ -104,6 +103,9 @@ while (curr_epoch < NUM_EPOCHS and loss > NUM_MCHEPS):
     hidden_layer_outputs = np.array([])
     result = data
 
+    print(hidden_weights)
+    print(output_weights)
+
     for layer in (0, NUM_NEURON):
         # this will let the variables pass through the neurons
         # as it changes value
@@ -114,6 +116,8 @@ while (curr_epoch < NUM_EPOCHS and loss > NUM_MCHEPS):
             else: hidden_layer_outputs = np.vstack((hidden_layer_outputs, result), 0)
     result = forward_pass(result, output_weights, output_bias, layer, True) # output layer
     
+    print(result)
+
     # calculate loss
     error = result - trueval
     loss = np.sum(0.5 * (error ** 2))
@@ -126,3 +130,31 @@ while (curr_epoch < NUM_EPOCHS and loss > NUM_MCHEPS):
     curr_epoch += 1
 
 print("Training done.")
+print("Final Weights:")
+print(hidden_weights)
+print(output_weights)
+
+# # Prediction
+# choice = 0
+# print("Predict the relative humidity at location {} {}".format(latitude, longitude))
+# while(choice != 1):
+#     precip = float(input("Enter precipitation: "))
+#     prssre = float(input("Enter pressure: "))
+    
+#     # compute
+#     new_data = np.array((precip, prssre))
+#     # forward pass the new data into the neural network
+#     result = new_data
+#     for layer in (0, NUM_NEURON):
+#         if layer != NUM_NEURON:
+#             result = forward_pass(result, hidden_weights, np.transpose(bias)[layer], layer, False)
+#     out = forward_pass(result, output_weights, output_bias, layer, True) * 100 # output layer 
+#     print("The relative humidity at {} precipitation and {} pressure is {}".format(precip, prssre, out))
+
+#     while(choice != 0 or choice != 1):
+#         choice = int(input("Predict again?\n[0] Yes\n[1] No\n>> "))
+#         if choice == 0: break
+#         elif choice == 1:
+#             print("Exiting..")
+#             break
+#         else: print("Invalid option.")
