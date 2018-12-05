@@ -107,6 +107,7 @@ while choice != 1:
     date_parsed = datetime.strptime(date, "%m/%d/%Y")
     precip = float(input("Enter precipitation: "))
     prssre = float(input("Enter pressure: "))
+    # the added [0,0,0] is padding, tensorflow does not allow 1-D vector as input even if reshaped
     data = np.array([[0,0,0],[(date_parsed - BASE_DATE).days, precip, prssre]])
 
     # predict
