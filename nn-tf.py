@@ -1,5 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
+from datetime import datetime
+import time
 import numpy as np
 import csv
 
@@ -26,7 +28,8 @@ https://power.larc.nasa.gov/data-access-viewer/
 '''
 
 # constants
-NUM_EPOCHS = 1000
+BASE_DATE = datetime.strptime("01/01/1990", "%m/%d/%Y")
+NUM_EPOCHS = 100
 RATIO_TEST = 0.2
 LEARNING_RATE = 0.01
 
@@ -87,7 +90,35 @@ class EpochUpdate(keras.callbacks.Callback):
 # Perform training
 # For cross validation, the data are split to training and test datas
 # using the RATIO_TEST validation split, which is the percent of data to be used as test
+start_time = time.time()
 history = model.fit(data, trueval, epochs = NUM_EPOCHS, validation_split = RATIO_TEST, verbose=0, callbacks = [EpochUpdate()])
+end_time = time.time()
+print("\nThe neural network performed {} epochs within {:.2f} seconds during training.".format(NUM_EPOCHS, end_time - start_time))
+print("It was trained on a total of {} data split between {} training data and {} test data.".format(data.shape[0], data.shape[0] - int(data.shape[0] * RATIO_TEST), int(data.shape[0] * RATIO_TEST)))
 
 # Now we can predict
-print("=================================================================")
+choice = 0
+print("=================================================================\n")
+print("Predict the relative humidity at location ({}, {}).".format(latitude, longitude))
+
+while choice != 1:
+    # get the data
+    date = input("Enter which date you wish to predict the weather (MM/DD/YYYY): ")
+    date_parsed = datetime.strptime(date, "%m/%d/%Y")
+    precip = float(input("Enter precipitation: "))
+    prssre = float(input("Enter pressure: "))
+    data = np.array([[0,0,0],[(date_parsed - BASE_DATE).days, precip, prssre]])
+
+    # predict
+    prediction = model.predict(data).flatten()[1]
+    print("\nThe relative humidity on {} at {} precipitation and {} pressure is {:.2f}".format(date, precip, prssre, prediction * 100))
+
+    while(choice != 0 or choice != 1):
+        choice = int(input("\nPredict again?\n[0] Yes\n[1] No\n>> "))
+        if choice == 0: 
+            print("")
+            break
+        elif choice == 1:
+            print("Exiting..")
+            break
+        else: print("Invalid option.")
