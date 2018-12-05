@@ -29,7 +29,7 @@ https://power.larc.nasa.gov/data-access-viewer/
 
 # constants
 BASE_DATE = datetime.strptime("01/01/1990", "%m/%d/%Y")
-NUM_EPOCHS = 100
+NUM_EPOCHS = 1000
 RATIO_TEST = 0.2
 LEARNING_RATE = 0.01
 
@@ -112,7 +112,7 @@ while choice != 1:
 
     # predict
     prediction = model.predict(data).flatten()[1]
-    print("\nThe relative humidity on {} at {} precipitation and {} pressure is {:.2f}".format(date, precip, prssre, prediction * 100))
+    print("\nThe relative humidity on {} at {}mm precipitation and {}kPa pressure is {:.2f}%".format(date, precip, prssre, prediction * 100))
 
     while(choice != 0 or choice != 1):
         choice = int(input("\nPredict again?\n[0] Yes\n[1] No\n>> "))
